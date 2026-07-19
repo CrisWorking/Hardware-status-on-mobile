@@ -76,12 +76,6 @@ rights to read sensors, and the built-in startup option does not
 launch elevated — temperatures may end up missing after a reboot. The
 reliable way is Task Scheduler:
 
-1. Open Task Scheduler → `Create Task…` (not "Basic Task")
-2. **General** tab: name it, check "Run with highest privileges"
-3. **Triggers** tab: New → "At log on"
-4. **Actions** tab: New → Start a program → browse to
-   `LibreHardwareMonitor.exe`
-5. Save. You'll be prompted for your password/confirmation once (UAC).
 
 ## Notes
 
