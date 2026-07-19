@@ -1,0 +1,63 @@
+name: Build Windows EXE
+
+# Builds PC Telemetry on a windows-latest runner and makes the .exe
+# files available as workflow artifacts — useful if you don't want
+# Python/PyInstaller installed locally.
+#
+# Runs automatically when the code changes on main, or manually from
+# the "Actions" tab on GitHub ("Run workflow").
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "server.py"
+      - "tray_app.py"
+      - "static/**"
+      - "requirements.txt"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build TelemetriaPC.exe (console)
+        run: >
+          python -m PyInstaller --onefile --name TelemetriaPC
+          --add-data "static;static"
+          --collect-all uvicorn
+          --collect-all fastapi
+          --collect-all starlette
+          --console
+          server.py
+
+      - name: Build TelemetriaPCTray.exe (system tray, no console)
+        run: >
+          python -m PyInstaller --onefile --name TelemetriaPCTray
+          --add-data "static;static"
+          --collect-all uvicorn
+          --collect-all fastapi
+          --collect-all starlette
+          --collect-all pystray
+          --windowed
+          tray_app.py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TelemetriaPC-windows
+          path: |
+            dist/TelemetriaPC.exe
+            dist/TelemetriaPCTray.exe
+          retention-days: 30

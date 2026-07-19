@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0C0F12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.svg">
+<title>PC Telemetry</title>
+<style>
+  :root{
+    --bg:#0C0F12;
+    --panel:#161A1F;
+    --panel-border:#232830;
+    --text:#EDEFF2;
+    --label:#8A94A0;
+    --amber:#FF9F1C;
+    --green:#39D98A;
+    --red:#FF4D4D;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;
+    overscroll-behavior:none; user-select:none;}
+  .num{font-family:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Consolas,monospace;}
+
+  header{display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; border-bottom:1px solid var(--panel-border);}
+  header h1{font-size:13px; letter-spacing:.14em; font-weight:600; margin:0;
+    color:var(--label); text-transform:uppercase;}
+  .status{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--label);}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--red); transition:background-color .3s;}
+  .dot.on{background:var(--green);}
+
+  main{padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .card{background:var(--panel); border:1px solid var(--panel-border); border-radius:10px; padding:12px 14px;}
+  .card.wide{grid-column:1 / -1;}
+  .card-label{font-size:11px; letter-spacing:.1em; color:var(--label); text-transform:uppercase; margin-bottom:6px;}
+  .card-value{font-size:30px; font-weight:600; line-height:1; margin-bottom:10px;}
+  .card-value .unit{font-size:14px; color:var(--label); margin-left:3px; font-weight:400;}
+
+  .gauge-track{position:relative; height:12px; background:var(--panel-border); border-radius:3px; overflow:hidden;}
+  .gauge-fill{height:100%; width:0%; border-radius:3px; background-color:var(--green);
+    background-image:repeating-linear-gradient(90deg, rgba(0,0,0,.35) 0 3px, transparent 3px 7px);
+    transition:width .35s ease, background-color .35s ease;}
+
+  .cores{display:flex; align-items:flex-end; gap:3px; height:28px; margin-top:10px;}
+  .core-bar{flex:1; background:var(--panel-border); border-radius:1px; min-height:2px; transition:height .35s ease, background-color .35s ease;}
+
+  .split{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .split .sub-label{font-size:10px; color:var(--label); text-transform:uppercase; letter-spacing:.08em;}
+  .split .sub-value{font-size:20px; font-weight:600; margin-top:2px;}
+
+  .arrow{font-size:14px; margin-right:4px;}
+  footer{padding:10px 16px 18px; text-align:center; font-size:11px; color:var(--panel-border);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PC &middot; Telemetry</h1>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">connecting…</span></div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="card-label">CPU</div>
+    <div class="card-value num"><span id="cpuVal">--</span><span class="unit">%</span></div>
+    <div class="gauge-track"><div class="gauge-fill" id="cpuBar"></div></div>
+    <div class="cores" id="cores"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">RAM</div>
+    <div class="card-value num"><span id="ramVal">--</span><span class="unit">%</span></div>
+    <div class="gauge-track"><div class="gauge-fill" id="ramBar"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Disk</div>
+    <div class="card-value num"><span id="diskVal">--</span><span class="unit">%</span></div>
+    <div class="gauge-track"><div class="gauge-fill" id="diskBar"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">GPU</div>
+    <div class="card-value num"><span id="gpuVal">--</span><span class="unit">%</span></div>
+    <div class="gauge-track"><div class="gauge-fill" id="gpuBar"></div></div>
+  </div>
+
+  <div class="card wide">
+    <div class="card-label">Temperatures</div>
+    <div class="split">
+      <div>
+        <div class="sub-label">CPU</div>
+        <div class="sub-value num" id="cpuTemp">-- °C</div>
+      </div>
+      <div>
+        <div class="sub-label">GPU</div>
+        <div class="sub-value num" id="gpuTemp">-- °C</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card wide">
+    <div class="card-label">Network</div>
+    <div class="split">
+      <div>
+        <div class="sub-label"><span class="arrow">↑</span>Upload</div>
+        <div class="sub-value num" id="netUp">-- KB/s</div>
+      </div>
+      <div>
+        <div class="sub-label"><span class="arrow">↓</span>Download</div>
+        <div class="sub-value num" id="netDown">-- KB/s</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>updates every ~1s &middot; local network only</footer>
+
+<script>
+(function(){
+  var els = {
+    dot: document.getElementById('dot'),
+    statusText: document.getElementById('statusText'),
+    cpuVal: document.getElementById('cpuVal'),
+    cpuBar: document.getElementById('cpuBar'),
+    cores: document.getElementById('cores'),
+    ramVal: document.getElementById('ramVal'),
+    ramBar: document.getElementById('ramBar'),
+    diskVal: document.getElementById('diskVal'),
+    diskBar: document.getElementById('diskBar'),
+    gpuVal: document.getElementById('gpuVal'),
+    gpuBar: document.getElementById('gpuBar'),
+    cpuTemp: document.getElementById('cpuTemp'),
+    gpuTemp: document.getElementById('gpuTemp'),
+    netUp: document.getElementById('netUp'),
+    netDown: document.getElementById('netDown'),
+  };
+
+  var coreBars = [];
+
+  function zoneColor(pct){
+    if (pct >= 85) return getVar('--red');
+    if (pct >= 60) return getVar('--amber');
+    return getVar('--green');
+  }
+  function tempColor(t){
+    if (t == null) return getVar('--label');
+    if (t >= 80) return getVar('--red');
+    if (t >= 65) return getVar('--amber');
+    return getVar('--green');
+  }
+  var _rootStyle = getComputedStyle(document.documentElement);
+  function getVar(name){ return _rootStyle.getPropertyValue(name).trim(); }
+
+  function ensureCoreBars(n){
+    if (coreBars.length === n) return;
+    els.cores.innerHTML = '';
+    coreBars = [];
+    for (var i = 0; i < n; i++){
+      var d = document.createElement('div');
+      d.className = 'core-bar';
+      els.cores.appendChild(d);
+      coreBars.push(d);
+    }
+  }
+
+  function setGauge(barEl, valEl, pct){
+    var p = Math.max(0, Math.min(100, pct));
+    barEl.style.width = p + '%';
+    barEl.style.backgroundColor = zoneColor(p);
+    valEl.textContent = pct.toFixed(1);
+  }
+
+  function update(d){
+    setGauge(els.cpuBar, els.cpuVal, d.cpu);
+    setGauge(els.ramBar, els.ramVal, d.ram);
+    setGauge(els.diskBar, els.diskVal, d.disk);
+
+    if (d.gpu_load != null){
+      setGauge(els.gpuBar, els.gpuVal, d.gpu_load);
+    } else {
+      els.gpuVal.textContent = '--';
+      els.gpuBar.style.width = '0%';
+    }
+
+    ensureCoreBars(d.cores.length);
+    for (var i = 0; i < d.cores.length; i++){
+      var pct = d.cores[i];
+      coreBars[i].style.height = Math.max(8, pct) + '%';
+      coreBars[i].style.backgroundColor = zoneColor(pct);
+    }
+
+    els.cpuTemp.textContent = (d.cpu_temp != null ? d.cpu_temp.toFixed(0) : '--') + ' °C';
+    els.cpuTemp.style.color = tempColor(d.cpu_temp);
+    els.gpuTemp.textContent = (d.gpu_temp != null ? d.gpu_temp.toFixed(0) : '--') + ' °C';
+    els.gpuTemp.style.color = tempColor(d.gpu_temp);
+
+    els.netUp.textContent = fmtRate(d.net_up);
+    els.netDown.textContent = fmtRate(d.net_down);
+  }
+
+  function fmtRate(kbps){
+    if (kbps > 1024) return (kbps/1024).toFixed(1) + ' MB/s';
+    return kbps.toFixed(1) + ' KB/s';
+  }
+
+  function setStatus(connected){
+    els.dot.classList.toggle('on', connected);
+    els.statusText.textContent = connected ? 'live' : 'disconnected…';
+  }
+
+  function connect(){
+    var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    var ws = new WebSocket(proto + location.host + '/ws');
+    ws.onopen = function(){ setStatus(true); };
+    ws.onclose = function(){ setStatus(false); setTimeout(connect, 2000); };
+    ws.onerror = function(){ ws.close(); };
+    ws.onmessage = function(e){ update(JSON.parse(e.data)); };
+  }
+  connect();
+})();
+</script>
+</body>
+</html>
